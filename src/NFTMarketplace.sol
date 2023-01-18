@@ -5,20 +5,21 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
 import "./NFTCollection.sol";
 import "./ERC20.sol"; // Victor's contract
-
-/* ListNFT -------------------------OK
-checkAvailableListings
-BuyNFT -------------------------------OK
-UpdateListingPrice ----------------ok 
-getMyNFTs --------------------------ok
-NumberOfNFTsSold -------------------ok
-Create auction --------------------- Ok 
-getLatestPrice (Oracle)
-*/
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract  MoNFTMarketPlace is ERC721URIStorage, ReentrancyGuard {
+ 
+   /* Network: Goerli
+     * Aggregator: ETH/USD
+     */
+   constructor(address) ERC721("MoNFTMarketPlace", "MoNFTM") {
+      // nativeNFT = NativeNFT (_nativeNFTAddress);
+        owner = payable(msg.sender);
+        priceFeed = AggregatorV3Interface(0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e);
+    }
 
     // Name of the marketplace
     string public MoMo;
@@ -67,10 +68,6 @@ contract  MoNFTMarketPlace is ERC721URIStorage, ReentrancyGuard {
 
     //This mapping maps tokenId to token info and is helpful when retrieving details about a tokenId
     mapping(uint256 => ListedToken) private idToListedToken;
-
-    constructor() ERC721("MoNFTMarketPlace", "MoNFTM") {
-        owner = payable(msg.sender);
-    }
 
     function updateListingPrice(uint256 _listPrice) public payable {
         require(owner == msg.sender, "Only owner can update listing price");
@@ -223,6 +220,20 @@ contract  MoNFTMarketPlace is ERC721URIStorage, ReentrancyGuard {
         //_nftSold = _nftSold.add(numberOfNfts);  // update
 
     }
+
+    AggregatorV3Interface internal priceFeed;
+
+        function getLatestPrice() public view returns (int) {
+        (
+            uint80 roundID,
+            int price,
+            uint startedAt,
+            uint timeStamp,
+            uint80 answeredInRound
+        ) = priceFeed.latestRoundData();
+        return price;
+    }
+
 // Create the auction
 
      // Structure to define auction properties
@@ -272,6 +283,7 @@ contract  MoNFTMarketPlace is ERC721URIStorage, ReentrancyGuard {
         }
         return size > 0;
     }
+
      
 // create an auction for a specific NFT
       function createAuction(
